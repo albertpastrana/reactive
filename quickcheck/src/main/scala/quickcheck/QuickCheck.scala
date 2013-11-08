@@ -9,19 +9,28 @@ import Prop._
 
 abstract class QuickCheckHeap extends Properties("Heap") with IntHeap {
 
+
   property("min1") = forAll { a: Int =>
     val h = insert(a, empty)
     findMin(h) == a
   }
 
+  //If you insert an element into an empty heap, then delete the minimum,
+  //the resulting heap should be empty.
   property("empty") = forAll { a: Int =>
     val h = insert(a, empty)
     deleteMin(h) == empty
   }
 
+  //If you insert any two elements into an empty heap, finding the minimum of the resulting heap
+  //should get the smallest of the two elements back.
   property("rightmin") = forAll { (a: Int, b: Int) =>
     val min = Math.min(a, b)
     min == findMin(insert(a, insert(b, empty)))
+  }
+
+  property("commut") = forAll { (a: H, b: H) =>
+    findMin(meld(a, b)) == findMin(meld(b, a))
   }
 
   property("assoc1") = forAll { (a: Int, b: Int) =>
@@ -36,6 +45,8 @@ abstract class QuickCheckHeap extends Properties("Heap") with IntHeap {
     meld(insert(a, empty), insert(b, empty)) == insert(a, meld(empty, insert(b, empty)))
   }
 
+  //Given any heap, you should get a sorted sequence of elements when continually finding
+  //and deleting minima. (Hint: recursion and helper functions are your friends.)
   property("ordered") = forAll { (a: H) =>
     def isOrdered(previous: Int, ts: H):Boolean = { 
       if (isEmpty(ts))
@@ -50,11 +61,25 @@ abstract class QuickCheckHeap extends Properties("Heap") with IntHeap {
     isOrdered(min, deleteMin(a))
   }
 
+  property("ordered1") = forAll { (a: Int, b: Int) =>
+    val (first, second) = if (a < b) (a, b) else (b, a)
+    val h = insert(a, insert(b, empty))
+    findMin(h) == first
+    val h1 = deleteMin(h)
+    findMin(h1) == second
+  }
+
+  //Finding a minimum of the melding of any two heaps should return a minimum of one or the other.
   property("min2heaps") = forAll { (a: H, b: H) =>
     val mina = findMin(a)
     val minb = findMin(b)
     val expected = if (mina < minb) mina else minb
     expected == findMin(meld(a, b))
+  }
+
+  property("size2->empty") = forAll { (a: Int) =>
+    val h = insert(a, insert(a, empty))
+    deleteMin(deleteMin(h)) == empty
   }
 
   lazy val genHeap: Gen[H] = for {
