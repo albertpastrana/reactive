@@ -19,6 +19,10 @@ class Wire {
     actions = a :: actions
     a()
   }
+  override def toString():String = {
+    if (sigVal) "1"
+    else "0"
+  }
 }
 
 abstract class CircuitSimulator extends Simulator {
@@ -73,7 +77,17 @@ abstract class CircuitSimulator extends Simulator {
   }
 
   def demux(in: Wire, c: List[Wire], out: List[Wire]) {
-    ???
+    def decoder(in: Wire, c: Wire, out: List[Wire]) {
+      val w1, w2 = new Wire
+      inverter(c, w1)
+      inverter(w1, w2)
+      andGate(w2, in, out.head)
+      andGate(w1, in, out.tail.head)
+    }
+    c match {
+      case List() => in addAction { () => out(0).setSignal(in.getSignal) }
+      case t::ts => decoder(in, t, out)
+    }
   }
 
 }
@@ -100,12 +114,43 @@ object Circuit extends CircuitSimulator {
     run
   }
 
-  //
-  // to complete with orGateExample and demuxExample...
-  //
+  def demuxExample1 {
+    val in, out = new Wire
+    demux(in, List(), List(out))
+    probe("in", in)
+    probe("out", out)
+    in.setSignal(false)
+    run
+    in.setSignal(true)
+    run
+  }
+
+  def demuxExample2 {
+    val in, c, out0, out1 = new Wire
+    demux(in, List(c), List(out1, out0))
+    probe("in", in)
+    probe("c", c)
+    probe("out0", out0)
+    probe("out1", out1)
+
+    in.setSignal(false)
+    c.setSignal(false)
+    run
+
+    c.setSignal(true)
+    run
+
+    in.setSignal(true)
+    run
+
+    c.setSignal(false)
+    run
+  }
 }
 
 object CircuitMain extends App {
   // You can write tests either here, or better in the test class CircuitSuite.
-  Circuit.andGateExample
+  // Circuit.andGateExample
+  // Circuit.demuxExample1
+  Circuit.demuxExample2
 }
