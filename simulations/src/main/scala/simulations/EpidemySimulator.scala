@@ -16,10 +16,16 @@ class EpidemySimulator extends Simulator {
 
   import SimConfig._
 
-  val persons: List[Person] = List() // to complete: construct list of persons
+  val persons: List[Person] = for (
+      i <- List.range(1, SimConfig.population)
+    ) yield { new Person(i) }
+
+  agenda = List(
+      new WorkItem(1, () => { println("action") } )
+    )
 
   class Person (val id: Int) {
-    var infected = false
+    var infected = randomBelow(100) < 10
     var sick = false
     var immune = false
     var dead = false
