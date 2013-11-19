@@ -80,13 +80,19 @@ abstract class CircuitSimulator extends Simulator {
     def decoder(in: Wire, c: Wire, out: List[Wire]) {
       val w1, w2 = new Wire
       inverter(c, w1)
-      inverter(w1, w2)
-      andGate(w2, in, out.head)
+      andGate(c, in, out.head)
       andGate(w1, in, out.tail.head)
     }
     c match {
-      case List() => in addAction { () => out(0).setSignal(in.getSignal) }
-      case t::ts => decoder(in, t, out)
+      case List() => if (out.size>0) in addAction { () => out(0).setSignal(in.getSignal) }
+      case t::ts => ts match {
+        case List() => decoder(in, t, out)
+        case t1::ts1 =>
+          val w1, w0 = new Wire
+          decoder(in, t, List(w1, w0))
+          demux(w1, ts, out.slice(0, out.size/2))
+          demux(w0, ts, out.slice(out.size/2, out.size))
+      }
     }
   }
 
