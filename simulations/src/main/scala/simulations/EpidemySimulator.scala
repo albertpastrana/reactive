@@ -61,7 +61,6 @@ class EpidemySimulator extends Simulator {
       this.col = col
       if (anyInfectedInRoom(row, col)) {
         if (randomBelow(100) < TransmissibilityRate) {
-          infected = true
           infectedAction
         }        
       }
@@ -76,11 +75,13 @@ class EpidemySimulator extends Simulator {
     )
 
     private def safeNeighbours: List[(Int, Int)] = {
-      neighbours.map{ n => n(row, col) }.filter{ r => anyInfectedInRoom(r._1, r._2) }
+      neighbours.map{ n => n(row, col) }.filter{ r => !anySickInRoom(r._1, r._2) }
     }
 
     private def infectedAction {
       if (dead) return
+      if (immune) return
+      infected = true
       def mustDie = randomBelow(100) < DieRate
       afterDelay(SickDelay)(sickAction)
       if (mustDie) {
@@ -97,7 +98,6 @@ class EpidemySimulator extends Simulator {
     }
 
     private def deadAction {
-      if (dead) return
       dead = true
       sick = true
     }
@@ -111,10 +111,11 @@ class EpidemySimulator extends Simulator {
       if (dead) return
       immune = false
       sick = false
+      infected = false
     }
 
     def inRoom(row:Int, col:Int) = this.row == row && this.col == col
-    def visibleSick = this.sick && !this.dead
+    def visibleSick = this.sick || this.dead
 
     private def nextMove = afterDelay(randomBelow(RndMoveDays)+1)(moveAction)
 
