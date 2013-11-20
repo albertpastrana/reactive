@@ -16,16 +16,14 @@ class EpidemySimulator extends Simulator {
 
   import SimConfig._
 
+  val PrevalenceRate = 0.01
   val persons: List[Person] = for (
-      i <- List.range(1, SimConfig.population)
+      i <- List.range(1, SimConfig.population+1)
     ) yield { new Person(i) }
 
-  agenda = List(
-      new WorkItem(1, () => { println("action") } )
-    )
-
   class Person (val id: Int) {
-    var infected = randomBelow(100) < 10
+    val MoveDays = 5
+    var infected = id <= (SimConfig.population * PrevalenceRate).toInt
     var sick = false
     var immune = false
     var dead = false
@@ -34,8 +32,10 @@ class EpidemySimulator extends Simulator {
     var row: Int = randomBelow(roomRows)
     var col: Int = randomBelow(roomColumns)
 
-    //
-    // to complete with simulation logic
-    //
+    def moveAction {
+      // println(s"I am moving $id")
+    }
+
+    afterDelay(randomBelow(MoveDays)+1)(moveAction)
   }
 }
