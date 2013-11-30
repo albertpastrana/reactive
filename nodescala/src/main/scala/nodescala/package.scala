@@ -66,10 +66,12 @@ package object nodescala {
     /** Returns a future with a unit value that is completed after time `t`.
      */
     def delay(t: Duration): Future[Unit] = async {
-      try {
-        Await.ready(never[Unit], t)
-      } catch {
-        case e: Exception =>
+      blocking {
+        try {
+          Await.ready(never[Unit], t)
+        } catch {
+          case e: Exception =>
+        }
       }
     }
 
@@ -97,7 +99,15 @@ package object nodescala {
      *  However, it is also non-deterministic -- it may throw or return a value
      *  depending on the current state of the `Future`.
      */
-    def now: T = ???
+    def now: T = {
+      f.value match {
+        case Some(v) => v match {
+          case Success(v) => v
+          case Failure(e) => throw e
+        }
+        case None => throw new NoSuchElementException
+      }
+    }
 
     /** Continues the computation of this future by taking the current future
      *  and mapping it into another future.

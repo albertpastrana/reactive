@@ -19,7 +19,6 @@ class NodeScalaSuite extends FunSuite {
 
   test("A Future should always be created") {
     val always = Future.always(517)
-
     assert(Await.result(always, 0 nanos) == 517)
   }
 
@@ -97,6 +96,20 @@ class NodeScalaSuite extends FunSuite {
     val f2 = Future.delay(3 seconds)
     Await.result(f2, 5 seconds)
     assert(true)
+  }
+
+  test("now of always should return correct value") {
+    val always = Future.always(1)
+    expectResult(1) {
+      always.now
+    }
+  }
+
+  test("now of never should throw NoSuchElementException") {
+    val never = Future.never[Int]
+    intercept[NoSuchElementException] {
+      never.now
+    }
   }
 
   test("CancellationTokenSource should allow stopping the computation") {
