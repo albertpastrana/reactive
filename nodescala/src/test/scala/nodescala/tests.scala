@@ -23,6 +23,13 @@ class NodeScalaSuite extends FunSuite {
     assert(Await.result(always, 0 nanos) == 517)
   }
 
+  test("A failed Future should fail") {
+    intercept[Exception] {
+      val fails = Future.failure[Int]
+      Await.result(fails, 100 nanos)      
+    }
+  }
+
   test("A Future should never be created") {
     val never = Future.never[Int]
 
@@ -32,6 +39,64 @@ class NodeScalaSuite extends FunSuite {
     } catch {
       case t: TimeoutException => // ok!
     }
+  }
+
+  test("all with some never should never complete") {
+    val fs = List(Future.always(1), Future.never[Int], Future.never[Int], Future.never[Int])
+    val res = Future.all(fs)
+    try {
+      Await.result(res, 1 second)
+      assert(false)
+    } catch {
+      case t: TimeoutException => // ok!
+    }
+  }
+
+  test("all with all success should return all results") {
+    val fs = List(Future.always(1), Future.always(2), Future.always(3))
+    val res = Future.all(fs)
+    expectResult(List(1, 2, 3)) {
+      Await.result(res, 100 nanos)
+    }
+  }
+
+  test("all with a failure should return a failure") {
+    val fs = List(Future.always(1), Future.always(2), Future.always(3), Future.failure[Int])
+    intercept[Exception] {
+      val res = Future.all(fs)
+      Await.result(res, 100 nanos)
+    }
+  }
+
+  // test("all with a failure and never should never return") {
+  //   val fs = List(Future.failure, Future.never[Int])
+
+  //   val res = Future.all(fs)
+
+  //   intercept[TimeoutException] {
+  //     Await.result(res, 1 seconds)
+  //   }
+  // }
+
+  test("any(always, never, never) should return always") {
+    val fs = List(Future.always(1), Future.never[Int], Future.never[Int])
+    val any = Future.any(fs)
+    expectResult(1) {
+      Await.result(any, 1 second)
+    }
+  }
+
+  test("A Future should not complete after 1s when using a delay of 3s") {    
+    intercept[TimeoutException] {
+      val f = Future.delay(3 seconds)    
+      Await.result(f, 1 second)
+    }
+  }
+
+  test("A Future should complete after 5s when using a delay of 3s") {
+    val f2 = Future.delay(3 seconds)
+    Await.result(f2, 5 seconds)
+    assert(true)
   }
 
   test("CancellationTokenSource should allow stopping the computation") {

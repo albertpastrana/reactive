@@ -31,13 +31,23 @@ package object nodescala {
       p.future
     }
 
+    def failure[T]: Future[T] = {
+      val p = Promise[T]()
+      p failure new Exception
+      p.future      
+    }
+
     /** Given a list of futures `fs`, returns the future holding the list of values of all the futures from `fs`.
      *  The returned future is completed only once all of the futures in `fs` have been completed.
      *  The values in the list are in the same order as corresponding futures `fs`.
      *  If any of the futures `fs` fails, the resulting future also fails.
      */
-    def all[T](fs: List[Future[T]]): Future[List[T]] = ???
-
+    def all[T](fs: List[Future[T]]): Future[List[T]] = {
+      val emptyList = Future.always(List[T]())
+      fs.foldRight(emptyList) {
+        (f, acc) => for { x <- f; xs <- acc } yield x :: xs
+      }
+    }
     /** Given a list of futures `fs`, returns the future holding the value of the future from `fs` that completed first.
      *  If the first completing future in `fs` fails, then the result is failed as well.
      *
@@ -47,11 +57,21 @@ package object nodescala {
      *
      *  may return a `Future` succeeded with `1`, `2` or failed with an `Exception`.
      */
-    def any[T](fs: List[Future[T]]): Future[T] = ???
+    def any[T](fs: List[Future[T]]): Future[T] = {
+      val p = Promise[T]()
+      fs.foreach { f => f onComplete { p.tryComplete(_) } }
+      p.future
+    }
 
     /** Returns a future with a unit value that is completed after time `t`.
      */
-    def delay(t: Duration): Future[Unit] = ???
+    def delay(t: Duration): Future[Unit] = async {
+      try {
+        Await.ready(never[Unit], t)
+      } catch {
+        case e: Exception =>
+      }
+    }
 
     /** Completes this future with user input.
      */
