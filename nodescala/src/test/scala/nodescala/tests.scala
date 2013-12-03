@@ -170,6 +170,25 @@ class NodeScalaSuite extends FunSuite {
     assert(Await.result(p.future, 1 second) == "done")
   }
 
+  test("unsubricribing from a run should stop it") {
+    var finished = false
+    val working = Future.run() { ct =>
+      Future {
+        while (ct.nonCancelled) {
+          Thread.sleep(10)
+        }
+        finished = true
+      }
+    }
+    Future.delay(500 millis) onSuccess {
+      case _ => working.unsubscribe()
+    }
+    Await.ready(Future.delay(600 millis), Duration.Inf)
+    expectResult(true) {
+      finished
+    }
+  }
+
   class DummyExchange(val request: Request) extends Exchange {
     @volatile var response = ""
     val loaded = Promise[String]()
