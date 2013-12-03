@@ -67,6 +67,7 @@ class NodeScalaSuite extends FunSuite {
     }
   }
 
+  //From https://class.coursera.org/reactive-001/forum/thread?thread_id=1254
   // test("all with a failure and never should never return") {
   //   val fs = List(Future.failure, Future.never[Int])
 
@@ -85,16 +86,16 @@ class NodeScalaSuite extends FunSuite {
     }
   }
 
-  test("A Future should not complete after 1s when using a delay of 3s") {    
+  test("A Future should not complete after 500 millis when using a delay of 1s") {    
     intercept[TimeoutException] {
-      val f = Future.delay(3 seconds)    
-      Await.result(f, 1 second)
+      val f = Future.delay(1 second)    
+      Await.result(f, 500 millis)
     }
   }
 
-  test("A Future should complete after 5s when using a delay of 3s") {
-    val f2 = Future.delay(3 seconds)
-    Await.result(f2, 5 seconds)
+  test("A Future should complete after 1s when using a delay of 500 millis") {
+    val f2 = Future.delay(500 millis)
+    Await.result(f2, 1 second)
     assert(true)
   }
 
@@ -111,6 +112,46 @@ class NodeScalaSuite extends FunSuite {
       never.now
     }
   }
+
+  test("continueWith: on success calls continuation") {
+    val always = Future.always(1)
+    val continuation = always.continueWith { f =>
+        expectResult(true) { f.isCompleted }
+        expectResult(always) { f }
+        2
+    }
+    expectResult(2) {
+      Await.result(continuation, 10 millis)
+    }
+  }
+
+  test("continueWith: on failure calls continuation") {
+    val failure = Future.failure[Int]
+    val continuation = failure.continueWith { f =>
+        expectResult(true) { f.isCompleted }
+        expectResult(failure) { f }
+        2
+    }
+    expectResult(2) {
+      Await.result(continuation, 10 millis)
+    }
+  }
+
+  test("continue should propagate successfull results") {
+    val always = Future.always(1)
+    val continuation = always.continue { v => v }
+    expectResult(Success(1)) {
+      Await.result(continuation, 10 millis)
+    }
+  } 
+
+  test("continue should handle exception") {
+    val always = Future.always(1)
+    val continuation = always.continue(_ => throw new Exception())
+    intercept[Exception] {
+      Await.result(continuation, 10 millis)
+    }
+  } 
 
   test("CancellationTokenSource should allow stopping the computation") {
     val cts = CancellationTokenSource()
