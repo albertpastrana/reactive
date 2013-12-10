@@ -9,7 +9,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{ Try, Success, Failure }
 import rx.subscriptions.CompositeSubscription
-import rx.lang.scala.Observable
+import rx.lang.scala._
 import observablex._
 import search._
 
@@ -37,7 +37,7 @@ trait WikipediaApi {
      *
      * E.g. `"erik", "erik meijer", "martin` should become `"erik", "erik_meijer", "martin"`
      */
-    def sanitized: Observable[String] = ???
+    def sanitized: Observable[String] = obs map { s => s.replaceAll(" ", "_") }
 
   }
 
@@ -48,7 +48,13 @@ trait WikipediaApi {
      *
      * E.g. `1, 2, 3, !Exception!` should become `Success(1), Success(2), Success(3), Failure(Exception), !TerminateStream!`
      */
-    def recovered: Observable[Try[T]] = ???
+    def recovered: Observable[Try[T]] = {
+      import Notification._
+      obs.materialize.map(n => n match {
+        case OnNext(v) => Success(v)
+        case OnError(e) => Failure(e)
+      })
+    }
 
     /** Emits the events from the `obs` observable, until `totalSec` seconds have elapsed.
      *
@@ -56,7 +62,7 @@ trait WikipediaApi {
      *
      * Note: uses the existing combinators on observables.
      */
-    def timedOut(totalSec: Long): Observable[T] = ???
+    def timedOut(totalSec: Long): Observable[T] = obs.takeUntil(Observable.interval(totalSec.seconds))
 
 
     /** Given a stream of events `obs` and a method `requestMethod` to map a request `T` into
