@@ -40,6 +40,14 @@ class WikipediaApiTest extends FunSuite {
     assert (timedOut.toBlockingObservable.toList.length === nbTicks)
   }
 
+  test("test recovered") {
+    val requests = Observable(3, 2, 1, 2)
+    val comp = requests.map(i => i / (i - 1))
+    
+    val theList = comp.recovered.map(_.isFailure).toBlockingObservable.toList
+    assert(theList === List(false, false, true))
+  }
+
   test("WikipediaApi should make the stream valid using sanitized") {
     val notvalid = Observable("erik", "erik meijer", "martin")
     val valid = notvalid.sanitized

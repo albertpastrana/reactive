@@ -48,14 +48,13 @@ trait WikipediaApi {
      *
      * E.g. `1, 2, 3, !Exception!` should become `Success(1), Success(2), Success(3), Failure(Exception), !TerminateStream!`
      */
-    def recovered: Observable[Try[T]] = {
-      import Notification._
-      obs.materialize.map(n => n match {
-        case OnNext(v) => Success(v)
-        case OnError(e) => Failure(e)
-      })
+    def recovered: Observable[Try[T]] = Observable { observer =>
+      obs.subscribe(
+        (t: T) => observer.onNext(Success(t)),
+        (e: Throwable) =>  { observer.onNext(Failure(e)); observer.onCompleted() },
+        () => observer.onCompleted()
+      )
     }
-
     /** Emits the events from the `obs` observable, until `totalSec` seconds have elapsed.
      *
      * After `totalSec` seconds, if `obs` is not yet completed, the result observable becomes completed.
@@ -90,7 +89,9 @@ trait WikipediaApi {
      *
      * Observable(Success(1), Succeess(1), Succeess(1), Succeess(2), Succeess(2), Succeess(2), Succeess(3), Succeess(3), Succeess(3))
      */
-    def concatRecovered[S](requestMethod: T => Observable[S]): Observable[Try[S]] = ???
+    def concatRecovered[S](requestMethod: T => Observable[S]): Observable[Try[S]] = {
+      obs.flatMap { v => requestMethod(v).recovered }
+    }
 
   }
 
